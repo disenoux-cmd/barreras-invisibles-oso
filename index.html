@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cápsula Interactiva: Las Barreras Invisibles</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Configuración de Tailwind para la marca de Enseña por Colombia -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        excBlue: {
+                            50: '#eef2f6',
+                            100: '#d5e0ec',
+                            500: '#3a6b9e',
+                            800: '#1e3a5f',
+                            900: '#0f243e', 
+                        },
+                        excYellow: {
+                            300: '#fef08a',
+                            400: '#facc15',
+                            500: '#eab308', 
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome para Íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel para JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- HTML2PDF para exportación del certificado -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Custom Scrollbar para el modal */
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="p-2 md:p-6 min-h-screen flex items-center justify-center">
+    
+    <div id="root" class="w-full max-w-6xl"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        const BARRERAS_DATA = {
+            mapa: [
+                { id: 1, icon: 'fa-user-slash', title: 'Falta de Autoconocimiento', stat: '36%', desc: 'De estudiantes no reconocen sus propios intereses y gustos (Datos ExC 2024).' },
+                { id: 2, icon: 'fa-map-signs', title: 'Desorientación', stat: '20%', desc: 'No analizan diferentes opciones al momento de tomar decisiones clave.' },
+                { id: 3, icon: 'fa-book-open', title: 'Falta de Información', stat: '40%', desc: 'No identifican programas afines ni requisitos de ingreso a posmedia.' },
+                { id: 4, icon: 'fa-users-slash', title: 'Ausencia de Redes', stat: '30%', desc: 'Señalan que sus familias no los apoyan en la búsqueda de información.' }
+            ],
+            casos: [
+                {
+                    id: 1,
+                    name: "Andrés (10°)",
+                    scenario: "Andrés es un estudiante destacado, pero al preguntarle por su futuro responde: 'No sé para qué soy bueno, la verdad me da igual'.",
+                    options: [
+                        { id: 'A', text: 'Entregarle un folleto con carreras universitarias.', isCorrect: false, msg: 'Error: La falta de información no es su principal barrera inicial. Necesita mirarse a sí mismo primero.' },
+                        { id: 'B', text: 'Implementar actividades de la Cartilla 1: Autoconocimiento.', isCorrect: true, msg: '¡Excelente! Andrés se enfrenta a la Falta de Autoconocimiento. La Cartilla 1 le ayudará a identificar sus fortalezas.' },
+                        { id: 'C', text: 'Decirle que no se preocupe, que el tiempo lo dirá.', isCorrect: false, msg: 'Error: La inacción perpetúa la barrera. Como Ecos, debemos detonar la reflexión.' }
+                    ]
+                },
+                {
+                    id: 2,
+                    name: "Camila (11°)",
+                    scenario: "Camila quiere estudiar ingeniería, pero su familia le dice que 'eso es para hombres' y no planean apoyarla.",
+                    options: [
+                        { id: 'A', text: 'Darle la razón a la familia para evitar conflictos.', isCorrect: false, msg: 'Error: Nuestro rol es empoderar al estudiante y movilizar su entorno.' },
+                        { id: 'B', text: 'Invitar a la familia a un taller OSO sobre estereotipos.', isCorrect: true, msg: '¡Muy bien! Estás atacando la barrera de "Ausencia de Redes". Integrar a la familia es clave en el proceso.' },
+                        { id: 'C', text: 'Hacer que Camila estudie a escondidas.', isCorrect: false, msg: 'Error: Generar dinámicas de ocultamiento no resuelve la barrera sistémica ni crea una red de apoyo real.' }
+                    ]
+                },
+                {
+                    id: 3,
+                    name: "Johan (11°)",
+                    scenario: "Johan sabe qué estudiar, pero no tiene idea de cómo inscribirse en una universidad ni qué es el SENA.",
+                    options: [
+                        { id: 'A', text: 'Hacer el proceso de inscripción por él.', isCorrect: false, msg: 'Error: El asistencialismo no desarrolla la autonomía del estudiante.' },
+                        { id: 'B', text: 'Decirle que busque en Google.', isCorrect: false, msg: 'Error: Aunque fomenta la autonomía, le falta la guía metodológica y la ruta clara.' },
+                        { id: 'C', text: 'Usar la Cartilla 2 para explorar rutas de formación.', isCorrect: true, msg: '¡Perfecto! Johan enfrenta una barrera de Información. Usar las herramientas institucionales le dará autonomía y claridad.' }
+                    ]
+                }
+            ],
+            compromisos: [
+                { id: 1, label: "Integrar la OSO de forma transversal en mis clases regulares." },
+                { id: 2, label: "Diseñar proyectos OSO adaptados a las vocaciones productivas de mi territorio." },
+                { id: 3, label: "Utilizar las cartillas OSO para investigar becas y requisitos." },
+                { id: 4, label: "Movilizar a mis colegas en el uso de herramientas de orientación." },
+                { id: 5, label: "Involucrar a las familias en la proyección de las juventudes." },
+                { id: 6, label: "Impulsar escenarios de autoconocimiento constantes en el aula." }
+            ]
+        };
+
+        const App = () => {
+            const [currentTab, setCurrentTab] = useState("inicio");
+            
+            // Estado para Casos
+            const [activeCase, setActiveCase] = useState(0);
+            const [feedback, setFeedback] = useState(null);
+
+            // Estado para Certificado
+            const [myCompromisos, setMyCompromisos] = useState([]);
+            const [userName, setUserName] = useState("");
+            const [generationDate, setGenerationDate] = useState("");
+            const [showCertificatePreview, setShowCertificatePreview] = useState(false);
+
+            useEffect(() => {
+                const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                const d = new Date();
+                setGenerationDate(`${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`);
+            }, []);
+
+            // Manejo de Simulador de Casos
+            const handleOptionSelect = (isCorrect, msg) => {
+                setFeedback({ isCorrect, msg });
+            };
+
+            const nextCase = () => {
+                setFeedback(null);
+                if (activeCase < BARRERAS_DATA.casos.length - 1) {
+                    setActiveCase(activeCase + 1);
+                } else {
+                    setCurrentTab("compromisos");
+                }
+            };
+
+            // Lógica robusta para PDF sin recortes
+            const downloadPDF = () => {
+                const element = document.getElementById('certificate-to-print');
+                
+                // Forzamos un mapeo 1:1 eliminando márgenes de jsPDF y manejando el espaciado dentro del HTML.
+                // 1056px x 816px equivale exactamente a una página "Letter" (Carta) en horizontal a 96DPI.
+                const opt = {
+                    margin:       0,
+                    filename:     `Certificado_OSO_${userName.trim().replace(/\s+/g, '_') || 'Implementador'}.pdf`,
+                    image:        { type: 'jpeg', quality: 1.0 },
+                    html2canvas:  { 
+                        scale: 2, 
+                        useCORS: true, 
+                        windowWidth: 1056, // Fuerza el ancho de captura
+                        scrollY: 0 
+                    },
+                    jsPDF:        { 
+                        unit: 'px', 
+                        format: [1056, 816], // Mapeo exacto
+                        orientation: 'landscape' 
+                    }
+                };
+
+                html2pdf().set(opt).from(element).save();
+            };
+
+            return (
+                <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+                    
+                    {/* Header */}
+                    <div className="bg-excBlue-900 text-white p-6 md:p-8 relative">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-bl-full"></div>
+                        <span className="text-excYellow-400 font-bold text-xs uppercase tracking-widest mb-2 block">Cápsula Interactiva • Módulo 2</span>
+                        <h1 className="text-2xl md:text-3xl font-extrabold">LAS BARRERAS INVISIBLES</h1>
+                    </div>
+                    
+                    {/* Navegación */}
+                    <div className="bg-slate-100 border-b p-0 flex overflow-x-auto custom-scrollbar">
+                        <button onClick={() => setCurrentTab("inicio")} className={`px-6 py-4 font-bold uppercase text-xs whitespace-nowrap transition ${currentTab === "inicio" ? "bg-white text-excBlue-900 border-b-4 border-excBlue-900" : "text-slate-500 hover:bg-slate-200"}`}>1. Inicio</button>
+                        <button onClick={() => setCurrentTab("mapa")} className={`px-6 py-4 font-bold uppercase text-xs whitespace-nowrap transition ${currentTab === "mapa" ? "bg-white text-excBlue-900 border-b-4 border-excBlue-900" : "text-slate-500 hover:bg-slate-200"}`}>2. Mapa de Barreras</button>
+                        <button onClick={() => setCurrentTab("casos")} className={`px-6 py-4 font-bold uppercase text-xs whitespace-nowrap transition ${currentTab === "casos" ? "bg-white text-excBlue-900 border-b-4 border-excBlue-900" : "text-slate-500 hover:bg-slate-200"}`}>3. Simulador de Casos</button>
+                        <button onClick={() => setCurrentTab("compromisos")} className={`px-6 py-4 font-bold uppercase text-xs whitespace-nowrap transition ${currentTab === "compromisos" ? "bg-white text-excBlue-900 border-b-4 border-excBlue-900" : "text-slate-500 hover:bg-slate-200"}`}>4. Mis Compromisos</button>
+                    </div>
+
+                    {/* Contenido Principal */}
+                    <div className="p-6 md:p-10 min-h-[450px]">
+                        
+                        {/* Tab 1: Inicio */}
+                        {currentTab === "inicio" && (
+                            <div className="fade-in flex flex-col md:flex-row gap-8 items-center">
+                                <div className="md:w-1/2">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-excBlue-100 text-excBlue-900 mb-4">
+                                        <i className="fas fa-eye-slash text-xl"></i>
+                                    </div>
+                                    <h2 className="text-2xl font-bold mb-4 text-excBlue-900">¿Qué son las Barreras Invisibles?</h2>
+                                    <p className="text-slate-700 leading-relaxed mb-4">
+                                        Más allá de las limitaciones económicas, los jóvenes de nuestro territorio se enfrentan a obstáculos silenciosos que frenan su tránsito exitoso hacia la vida posmedia. Estas barreras incluyen el desconocimiento propio, la falta de información y la ausencia de apoyo familiar.
+                                    </p>
+                                    <button onClick={() => setCurrentTab("mapa")} className="mt-4 bg-excBlue-900 text-white px-6 py-3 rounded-full font-semibold hover:bg-excBlue-800 transition">
+                                        Explorar el Mapa <i className="fas fa-arrow-right ml-2"></i>
+                                    </button>
+                                </div>
+                                <div className="md:w-1/2 bg-slate-50 p-6 rounded-2xl border border-slate-200 relative">
+                                    <div className="absolute -top-4 -right-4 w-12 h-4 bg-excYellow-400 opacity-70 transform rotate-45"></div>
+                                    <h3 className="font-bold text-excBlue-900 mb-2"><i className="fas fa-quote-left text-excYellow-500 mr-2"></i>El impacto real</h3>
+                                    <p className="text-sm text-slate-600 italic">"Según la Encuesta Jóvenes con Potencial (2023), después de las limitaciones económicas, las barreras más relevantes para acceder a oportunidades son la falta de motivación, la falta de acompañamiento y la falta de información."</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Tab 2: Mapa */}
+                        {currentTab === "mapa" && (
+                            <div className="fade-in">
+                                <h2 className="text-2xl font-bold mb-6 text-excBlue-900 text-center">Diagnóstico en Territorio (Datos ExC 2024)</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {BARRERAS_DATA.mapa.map(barrera => (
+                                        <div key={barrera.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex gap-4 items-start group">
+                                            <div className="flex-shrink-0 w-14 h-14 rounded-full bg-excBlue-50 flex items-center justify-center group-hover:bg-excYellow-400 transition-colors">
+                                                <i className={`fas ${barrera.icon} text-2xl text-excBlue-900`}></i>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-excBlue-900 text-lg">{barrera.title}</h3>
+                                                <div className="text-excYellow-500 font-black text-xl mb-1">+{barrera.stat}</div>
+                                                <p className="text-sm text-slate-600">{barrera.desc}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-8 text-center">
+                                    <button onClick={() => setCurrentTab("casos")} className="bg-excBlue-900 text-white px-6 py-3 rounded-full font-semibold hover:bg-excBlue-800 transition">
+                                        Ir al Simulador de Casos <i className="fas fa-arrow-right ml-2"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Tab 3: Simulador Gamificado */}
+                        {currentTab === "casos" && (
+                            <div className="fade-in max-w-3xl mx-auto">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold text-excBlue-900"><i className="fas fa-gamepad text-excYellow-500 mr-2"></i> Simulador de Intervención</h2>
+                                    <span className="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1 rounded-full">
+                                        Caso {activeCase + 1} de {BARRERAS_DATA.casos.length}
+                                    </span>
+                                </div>
+
+                                <div className="bg-excBlue-50 border-l-4 border-excBlue-900 p-6 rounded-r-2xl mb-6">
+                                    <h3 className="font-bold text-xl text-excBlue-900 mb-2">{BARRERAS_DATA.casos[activeCase].name}</h3>
+                                    <p className="text-slate-700 text-lg italic">"{BARRERAS_DATA.casos[activeCase].scenario}"</p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <p className="font-bold text-slate-700 mb-2">¿Cómo intervienes desde la OSO?</p>
+                                    {BARRERAS_DATA.casos[activeCase].options.map(opt => (
+                                        <button 
+                                            key={opt.id}
+                                            onClick={() => !feedback && handleOptionSelect(opt.isCorrect, opt.msg)}
+                                            disabled={feedback !== null}
+                                            className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                                                feedback === null ? "bg-white border-slate-200 hover:border-excBlue-500 hover:shadow-md cursor-pointer" :
+                                                (feedback && opt.isCorrect ? "bg-emerald-50 border-emerald-500 text-emerald-900" : "bg-white border-slate-200 opacity-50 cursor-not-allowed")
+                                            }`}
+                                        >
+                                            <span className="font-bold mr-2 text-excBlue-900">{opt.id}.</span> {opt.text}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {feedback && (
+                                    <div className={`mt-6 p-5 rounded-2xl border fade-in ${feedback.isCorrect ? "bg-emerald-100 border-emerald-300" : "bg-red-50 border-red-200"}`}>
+                                        <div className="flex items-start gap-3">
+                                            <i className={`fas ${feedback.isCorrect ? "fa-check-circle text-emerald-600" : "fa-times-circle text-red-500"} text-2xl mt-1`}></i>
+                                            <div>
+                                                <p className={`font-bold ${feedback.isCorrect ? "text-emerald-800" : "text-red-800"}`}>{feedback.msg}</p>
+                                                <button onClick={nextCase} className={`mt-3 px-5 py-2 rounded-lg font-bold text-sm ${feedback.isCorrect ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-red-600 text-white hover:bg-red-700"}`}>
+                                                    {activeCase < BARRERAS_DATA.casos.length - 1 ? "Siguiente Caso" : "Finalizar y Crear Compromisos"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Tab 4: Compromisos y Certificado */}
+                        {currentTab === "compromisos" && (
+                            <div className="fade-in space-y-8 max-w-4xl mx-auto">
+                                <div className="text-center mb-6">
+                                    <h2 className="text-2xl font-bold text-excBlue-900">Muro de Compromisos</h2>
+                                    <p className="text-slate-600">Para finalizar, elige las acciones que te comprometes a implementar y genera tu reconocimiento.</p>
+                                </div>
+
+                                <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-200">
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">1. Tu nombre completo:</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Ej: María Rodríguez" 
+                                        className="w-full p-4 mb-6 border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-excBlue-100 focus:border-excBlue-500 outline-none transition text-lg"
+                                        value={userName}
+                                        onChange={(e) => setUserName(e.target.value)}
+                                    />
+                                    
+                                    <label className="block text-sm font-bold text-slate-700 mb-3">2. Selecciona tus compromisos (mínimo 1):</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {BARRERAS_DATA.compromisos.map(comp => {
+                                            const isSelected = myCompromisos.includes(comp.id);
+                                            return (
+                                                <div 
+                                                    key={comp.id} 
+                                                    onClick={() => setMyCompromisos(prev => isSelected ? prev.filter(i=>i!==comp.id) : [...prev, comp.id])}
+                                                    className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition ${isSelected ? 'bg-excBlue-50 border-excBlue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-excBlue-300'}`}
+                                                >
+                                                    <div className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center mt-0.5 ${isSelected ? 'border-excBlue-500 bg-excBlue-500' : 'border-slate-300'}`}>
+                                                        {isSelected && <i className="fas fa-check text-white text-xs"></i>}
+                                                    </div>
+                                                    <span className={`text-sm font-medium ${isSelected ? 'text-excBlue-900' : 'text-slate-700'}`}>{comp.label}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="mt-8 flex justify-center">
+                                        <button 
+                                            onClick={() => setShowCertificatePreview(true)} 
+                                            disabled={!userName.trim() || myCompromisos.length === 0}
+                                            className="bg-excYellow-500 hover:bg-excYellow-400 text-excBlue-900 disabled:opacity-50 disabled:cursor-not-allowed font-extrabold text-lg uppercase tracking-wider px-8 py-4 rounded-full shadow-lg transition-all flex items-center gap-3"
+                                        >
+                                            <i className="fas fa-award text-2xl"></i> Generar mi Certificado
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* MODAL DEL CERTIFICADO - CONFIGURACIÓN DE PÍXELES EXACTOS */}
+                    {showCertificatePreview && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 fade-in">
+                            <div className="bg-slate-100 rounded-3xl shadow-2xl p-6 w-full max-w-[1100px] max-h-[95vh] flex flex-col">
+                                
+                                <div className="flex justify-between items-center mb-4 px-4 flex-shrink-0">
+                                    <h3 className="text-xl font-bold text-excBlue-900">Vista Previa del Certificado</h3>
+                                    <button onClick={() => setShowCertificatePreview(false)} className="text-slate-400 hover:text-red-500 text-2xl transition">
+                                        <i className="fas fa-times-circle"></i>
+                                    </button>
+                                </div>
+
+                                {/* Contenedor Scrollable para pantallas pequeñas */}
+                                <div className="overflow-auto custom-scrollbar flex-grow pb-4 flex justify-center items-start bg-slate-200/50 rounded-xl">
+                                    
+                                    {/* CONTENEDOR DE IMPRESIÓN - DIMENSIONES EXACTAS 11x8.5 pulgadas a 96DPI (1056x816) */}
+                                    <div id="certificate-to-print" className="bg-white text-excBlue-900 relative box-border flex-shrink-0 origin-top-left scale-[0.6] sm:scale-75 md:scale-90 lg:scale-100" style={{ width: '1056px', height: '816px', padding: '40px' }}>
+                                        
+                                        {/* Elementos Decorativos de Fondo */}
+                                        <div className="absolute inset-0 border-[16px] border-excBlue-900 m-8 rounded-3xl"></div>
+                                        <div className="absolute inset-0 border-[3px] border-excYellow-500 m-[44px] rounded-2xl pointer-events-none"></div>
+                                        
+                                        {/* Contenido Central */}
+                                        <div className="relative z-10 flex flex-col h-full justify-between items-center text-center px-12 py-10">
+                                            
+                                            {/* Cabecera Diploma */}
+                                            <div className="mt-8">
+                                                <h2 className="text-3xl font-black uppercase tracking-widest text-excBlue-900 mb-3">Reconocimiento de Compromiso OSO</h2>
+                                                <p className="text-xl italic text-slate-600">Otorgado solemnemente al implementador:</p>
+                                                <h1 className="text-5xl font-extrabold text-excYellow-500 capitalize py-8 border-b-2 border-slate-100 px-16 inline-block">{userName}</h1>
+                                            </div>
+                                            
+                                            {/* Grilla de Compromisos */}
+                                            <div className="grid grid-cols-2 gap-4 w-full text-left mb-auto mt-8 px-8">
+                                                {myCompromisos.map(compId => {
+                                                    const comp = BARRERAS_DATA.compromisos.find(c => c.id === compId);
+                                                    if(!comp) return null;
+                                                    return (
+                                                        <div key={compId} className="flex items-center gap-4 bg-slate-50 p-4 border border-slate-200 rounded-xl">
+                                                            <i className="fas fa-check-circle text-emerald-500 text-2xl"></i>
+                                                            <span className="text-base font-bold text-slate-700 leading-tight">{comp.label}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Pie de Firma y Sellos - Garantizado sin cortes */}
+                                            <div className="flex justify-between items-end w-full border-t-2 border-slate-200 pt-8 mt-8 px-4 mb-4">
+                                                <div className="text-sm font-semibold text-slate-500 text-left">
+                                                    <p className="uppercase tracking-widest text-xs mb-1">Emitido el:</p>
+                                                    <p className="font-bold text-slate-700 text-xl">{generationDate}</p>
+                                                </div>
+                                                
+                                                {/* Sello Alianza - Corregido */}
+                                                <div className="bg-excYellow-500 text-excBlue-900 rounded-full w-28 h-28 flex items-center justify-center font-black text-lg tracking-widest shadow-lg border-4 border-white outline outline-2 outline-excYellow-500 transform rotate-[-10deg]">
+                                                    ALIANZA
+                                                </div>
+                                                
+                                                <div className="text-right">
+                                                    <p className="font-black text-excBlue-900 text-3xl tracking-tight mb-1">Enseña por Colombia</p>
+                                                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Orientación Socio Ocupacional</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Acciones del Modal */}
+                                <div className="flex justify-end gap-4 pt-4 mt-2 flex-shrink-0">
+                                    <button 
+                                        onClick={() => setShowCertificatePreview(false)}
+                                        className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-sm uppercase tracking-wider px-6 py-3 rounded-xl transition"
+                                    >
+                                        Modificar Datos
+                                    </button>
+                                    <button 
+                                        onClick={downloadPDF}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm uppercase tracking-wider px-8 py-3 rounded-xl shadow-lg transition inline-flex items-center gap-2"
+                                    >
+                                        <i className="fas fa-file-download text-lg"></i> Descargar en PDF Seguro
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
