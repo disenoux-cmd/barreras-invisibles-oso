@@ -49,8 +49,8 @@
     <script src="https://unpkg.com/@babel/standalone@7.26.10/babel.min.js"></script>
     <script>Babel.disableScriptTags();</script>
 
-    <!-- HTML2PDF para exportación del certificado -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- HTML2Canvas para captura de pantalla -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
@@ -154,8 +154,8 @@
                 }
             };
 
-            // Lógica robusta para PDF sin recortes
-            const downloadPDF = () => {
+            // Captura de pantalla del certificado
+            const captureScreenshot = () => {
                 const element = document.getElementById('certificate-to-print');
                 
                 // Clonar el elemento para evitar transformaciones del padre
@@ -167,25 +167,19 @@
                 // Añadir al body temporalmente
                 document.body.appendChild(clone);
                 
-                const opt = {
-                    margin:       0,
-                    filename:     `Certificado_OSO_${userName.trim().replace(/\s+/g, '_') || 'Implementador'}.pdf`,
-                    image:        { type: 'jpeg', quality: 1.0 },
-                    html2canvas:  { 
-                        scale: 2, 
-                        useCORS: true, 
-                        windowWidth: 1056,
-                        scrollY: 0 
-                    },
-                    jsPDF:        { 
-                        unit: 'px', 
-                        format: [1056, 816],
-                        orientation: 'landscape' 
-                    }
-                };
-
-                html2pdf().set(opt).from(clone).save().then(function() {
-                    // Eliminar el clon después de generar el PDF
+                html2canvas(clone, {
+                    scale: 2,
+                    useCORS: true,
+                    windowWidth: 1056,
+                    scrollY: 0
+                }).then(function(canvas) {
+                    // Convertir a imagen y descargar
+                    const link = document.createElement('a');
+                    link.download = `Certificado_OSO_${userName.trim().replace(/\s+/g, '_') || 'Implementador'}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    // Eliminar el clon
                     document.body.removeChild(clone);
                 });
             };
@@ -435,10 +429,10 @@
                                         Modificar Datos
                                     </button>
                                     <button 
-                                        onClick={downloadPDF}
+                                        onClick={captureScreenshot}
                                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm uppercase tracking-wider px-8 py-3 rounded-xl shadow-lg transition inline-flex items-center gap-2"
                                     >
-                                        <i className="fas fa-file-download text-lg"></i> Descargar en PDF Seguro
+                                        <i className="fas fa-camera text-lg"></i> Capturar Certificado
                                     </button>
                                 </div>
                             </div>
