@@ -158,8 +158,14 @@
             const downloadPDF = () => {
                 const element = document.getElementById('certificate-to-print');
                 
-                // Forzamos un mapeo 1:1 eliminando márgenes de jsPDF y manejando el espaciado dentro del HTML.
-                // 1056px x 816px equivale exactamente a una página "Letter" (Carta) en horizontal a 96DPI.
+                // Guardar estilos originales
+                const originalStyle = element.getAttribute('style');
+                const originalClass = element.className;
+                
+                // Forzar dimensiones exactas sin escala para la captura
+                element.className = 'bg-white text-excBlue-900 relative box-border flex-shrink-0';
+                element.setAttribute('style', 'width: 1056px; height: 816px; padding: 40px; transform: none;');
+                
                 const opt = {
                     margin:       0,
                     filename:     `Certificado_OSO_${userName.trim().replace(/\s+/g, '_') || 'Implementador'}.pdf`,
@@ -167,17 +173,21 @@
                     html2canvas:  { 
                         scale: 2, 
                         useCORS: true, 
-                        windowWidth: 1056, // Fuerza el ancho de captura
+                        windowWidth: 1056,
                         scrollY: 0 
                     },
                     jsPDF:        { 
                         unit: 'px', 
-                        format: [1056, 816], // Mapeo exacto
+                        format: [1056, 816],
                         orientation: 'landscape' 
                     }
                 };
 
-                html2pdf().set(opt).from(element).save();
+                html2pdf().set(opt).from(element).save().then(function() {
+                    // Restaurar estilos y clases originales
+                    element.className = originalClass;
+                    element.setAttribute('style', originalStyle);
+                });
             };
 
             return (
