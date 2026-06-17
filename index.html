@@ -158,13 +158,14 @@
             const downloadPDF = () => {
                 const element = document.getElementById('certificate-to-print');
                 
-                // Guardar estilos originales
-                const originalStyle = element.getAttribute('style');
-                const originalClass = element.className;
+                // Clonar el elemento para evitar transformaciones del padre
+                const clone = element.cloneNode(true);
+                clone.id = 'certificate-clone';
+                clone.style.cssText = 'position: fixed; top: 0; left: 0; width: 1056px; height: 816px; padding: 40px; z-index: 9999; background: white;';
+                clone.className = 'bg-white text-excBlue-900 relative box-border';
                 
-                // Forzar dimensiones exactas sin escala para la captura
-                element.className = 'bg-white text-excBlue-900 relative box-border flex-shrink-0';
-                element.setAttribute('style', 'width: 1056px; height: 816px; padding: 40px; transform: none;');
+                // Añadir al body temporalmente
+                document.body.appendChild(clone);
                 
                 const opt = {
                     margin:       0,
@@ -183,10 +184,9 @@
                     }
                 };
 
-                html2pdf().set(opt).from(element).save().then(function() {
-                    // Restaurar estilos y clases originales
-                    element.className = originalClass;
-                    element.setAttribute('style', originalStyle);
+                html2pdf().set(opt).from(clone).save().then(function() {
+                    // Eliminar el clon después de generar el PDF
+                    document.body.removeChild(clone);
                 });
             };
 
